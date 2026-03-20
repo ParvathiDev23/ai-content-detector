@@ -23,10 +23,8 @@ app.add_middleware(
 HF_TOKEN = os.getenv("HF_TOKEN")
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# Hugging Face API Endpoints
+# API Endpoints
 TEXT_API_URL = "https://router.huggingface.co/hf-inference/models/Hello-SimpleAI/chatgpt-detector-roberta"
-
-# FIX 1: Swapped to a highly active, modern Deepfake Detector model
 IMAGE_API_URL = "https://router.huggingface.co/hf-inference/models/prithivMLmods/Deep-Fake-Detector-v2-Model"
 
 class TextRequest(BaseModel):
@@ -36,7 +34,6 @@ def query_huggingface(api_url, payload, is_file=False):
     max_retries = 3
     for attempt in range(max_retries):
         if is_file:
-            # FIX 2: We must explicitly tell Hugging Face this is raw binary image data
             file_headers = {
                 "Authorization": f"Bearer {HF_TOKEN}",
                 "Content-Type": "application/octet-stream"
@@ -46,19 +43,40 @@ def query_huggingface(api_url, payload, is_file=False):
             response = requests.post(api_url, headers=HEADERS, json=payload)
             
         result = response.json()
-        
         if isinstance(result, dict) and "estimated_time" in result:
-            wait_time = result["estimated_time"]
-            print(f"Model waking up. Waiting {wait_time}s...")
-            time.sleep(wait_time)
+            time.sleep(result["estimated_time"])
             continue
-            
         return result
-    return {"error": "Hugging Face API timed out or failed"}
+    return {"error": "API timed out"}
+
+def get_threshold_result(ai_probability, content_type):
+    """Calculates the Traffic Light status based on AI probability"""
+    if ai_probability >= 0.80:
+        return {
+            "status": "Highly Likely AI-Generated",
+            "level": "danger", # Triggers Red UI
+            "confidence": round(ai_probability * 100, 2),
+            "type": content_type
+        }
+    elif ai_probability >= 0.55:
+        return {
+            "status": "Mixed Content / Inconclusive",
+            "level": "warning", # Triggers Yellow UI
+            "confidence": round(ai_probability * 100, 2),
+            "type": content_type
+        }
+    else:
+        human_prob = 1.0 - ai_probability
+        return {
+            "status": "Likely Authentic / Human",
+            "level": "success", # Triggers Green UI
+            "confidence": round(human_prob * 100, 2),
+            "type": content_type
+        }
 
 @app.get("/")
 def read_root():
-    return {"status": "Lightweight API is running perfectly!"}
+    return {"status": "Threshold API is running!"}
 
 @app.post("/analyze-text")
 def analyze_text(request: TextRequest):
@@ -69,13 +87,12 @@ def analyze_text(request: TextRequest):
     if "error" in result: return result
         
     top_prediction = result[0][0]
-    is_ai = top_prediction['label'].lower() != "human"
+    raw_label = top_prediction['label'].lower()
+    score = top_prediction['score']
     
-    return {
-        "is_ai": is_ai,
-        "confidence": round(top_prediction['score'] * 100, 2),
-        "type": "text"
-    }
+    # Standardize probability towards AI
+    ai_prob = score if raw_label != "human" else (1.0 - score)
+    return get_threshold_result(ai_prob, "text")
 
 @app.post("/analyze-image")
 async def analyze_img(file: UploadFile = File(...)):
@@ -84,21 +101,14 @@ async def analyze_img(file: UploadFile = File(...)):
     
     image_bytes = await file.read()
     result = query_huggingface(IMAGE_API_URL, image_bytes, is_file=True)
-    
-    if isinstance(result, dict) and "error" in result:
-        return result
+    if isinstance(result, dict) and "error" in result: return result
         
     top_prediction = result[0]
     label = top_prediction['label'].lower()
+    is_ai_label = any(word in label for word in ["fake", "artificial", "ai", "deepfake"])
     
-    # Catching multiple label types (Fake, Deepfake, Artificial, etc.)
-    is_ai = any(word in label for word in ["fake", "artificial", "ai", "deepfake"])
-    
-    return {
-        "is_ai": is_ai,
-        "confidence": round(top_prediction['score'] * 100, 2),
-        "type": "image"
-    }
+    ai_prob = top_prediction['score'] if is_ai_label else (1.0 - top_prediction['score'])
+    return get_threshold_result(ai_prob, "image")
 
 @app.post("/analyze-video")
 async def analyze_vid(file: UploadFile = File(...)):
@@ -115,7 +125,6 @@ async def analyze_vid(file: UploadFile = File(...)):
         frame_indices = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
         
         ai_scores = []
-        
         for idx in frame_indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ret, frame = cap.read()
@@ -126,22 +135,13 @@ async def analyze_vid(file: UploadFile = File(...)):
                     if isinstance(result, list):
                         top_prediction = result[0]
                         label = top_prediction['label'].lower()
-                        is_ai_frame = any(word in label for word in ["fake", "artificial", "ai", "deepfake"])
-                        score = top_prediction['score'] if is_ai_frame else (1 - top_prediction['score'])
+                        is_ai_label = any(word in label for word in ["fake", "artificial", "ai", "deepfake"])
+                        score = top_prediction['score'] if is_ai_label else (1.0 - top_prediction['score'])
                         ai_scores.append(score)
-                
         cap.release()
         
-        if not ai_scores:
-            return {"error": "Could not extract or analyze frames from video."}
-            
+        if not ai_scores: return {"error": "Could not analyze video frames."}
         avg_ai_score = sum(ai_scores) / len(ai_scores)
-        is_ai_overall = avg_ai_score > 0.5
-
-        return {
-            "is_ai": is_ai_overall,
-            "confidence": round((avg_ai_score if is_ai_overall else (1 - avg_ai_score)) * 100, 2),
-            "type": "video"
-        }
+        return get_threshold_result(avg_ai_score, "video")
     finally:
         os.remove(temp_video_path)
