@@ -19,26 +19,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("Loading Text Model...")
-text_detector = pipeline("text-classification", model="Hello-SimpleAI/chatgpt-detector-roberta")
+# Initialize variables as None so the server boots instantly
+text_detector = None
+image_detector = None
 
-print("Loading Image Model... (This will take a moment)")
-# Using a Vision Transformer fine-tuned for AI vs Real detection
-image_detector = pipeline("image-classification", model="umm-maybe/AI-image-detector")
+# --- LAZY LOADING FUNCTIONS ---
+def get_text_model():
+    global text_detector
+    if text_detector is None:
+        print("Lazy Loading Text Model...")
+        text_detector = pipeline("text-classification", model="Hello-SimpleAI/chatgpt-detector-roberta")
+    return text_detector
+
+def get_image_model():
+    global image_detector
+    if image_detector is None:
+        print("Lazy Loading Image Model... (This will take a moment)")
+        image_detector = pipeline("image-classification", model="umm-maybe/AI-image-detector")
+    return image_detector
+# ------------------------------
 
 class TextRequest(BaseModel):
     text: str
 
 @app.get("/")
 def read_root():
-    return {"status": "Multimodal AI Detector API is running"}
+    return {"status": "Multimodal AI Detector API is running and ports are open!"}
 
 @app.post("/analyze-text")
 def analyze_text(request: TextRequest):
     if len(request.text.split()) < 10:
         return {"error": "Please provide at least 10 words."}
     
-    result = text_detector(request.text, truncation=True, max_length=512)
+    # Load the model only when this endpoint is called
+    model = get_text_model()
+    result = model(request.text, truncation=True, max_length=512)
+    
     prediction = result[0]['label'] 
     is_ai = prediction.lower() != "human"
     
@@ -53,14 +69,13 @@ async def analyze_img(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-    # Read the image file into memory
     image_bytes = await file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     
-    # Run through the vision model
-    results = image_detector(image)
+    # Load the model only when this endpoint is called
+    model = get_image_model()
+    results = model(image)
     
-    # The model returns a list of dictionaries; the first is the highest confidence
     top_result = results[0]
     is_ai = top_result['label'].lower() == "artificial" or "ai" in top_result['label'].lower()
     
@@ -75,7 +90,6 @@ async def analyze_vid(file: UploadFile = File(...)):
     if not file.content_type.startswith("video/"):
         raise HTTPException(status_code=400, detail="File must be a video")
     
-    # Save video temporarily to process with OpenCV
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
         temp_video.write(await file.read())
         temp_video_path = temp_video.name
@@ -84,29 +98,27 @@ async def analyze_vid(file: UploadFile = File(...)):
         cap = cv2.VideoCapture(temp_video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Extract 3 frames: 25%, 50%, and 75% through the video
         frame_indices = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
         ai_scores = []
+        
+        # Load the model only when this endpoint is called
+        model = get_image_model()
         
         for idx in frame_indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ret, frame = cap.read()
             if ret:
-                # Convert OpenCV frame (BGR) to PIL Image (RGB)
                 color_converted = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pil_image = Image.fromarray(color_converted)
                 
-                # Analyze frame
-                result = image_detector(pil_image)[0]
+                result = model(pil_image)[0]
                 is_ai_frame = result['label'].lower() == "artificial" or "ai" in result['label'].lower()
                 
-                # Store the confidence score towards it being AI
                 score = result['score'] if is_ai_frame else (1 - result['score'])
                 ai_scores.append(score)
                 
         cap.release()
         
-        # Average the scores
         if not ai_scores:
             return {"error": "Could not extract frames from video."}
             
@@ -120,5 +132,4 @@ async def analyze_vid(file: UploadFile = File(...)):
         }
         
     finally:
-        # Clean up the temporary file
         os.remove(temp_video_path)
