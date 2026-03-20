@@ -25,7 +25,7 @@ HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 # API Endpoints
 TEXT_API_URL = "https://router.huggingface.co/hf-inference/models/Hello-SimpleAI/chatgpt-detector-roberta"
-# Swapped to a highly stable model to avoid the inverted label bug
+# Stable image model that does not have the inverted label bug
 IMAGE_API_URL = "https://router.huggingface.co/hf-inference/models/dima806/deepfake_vs_real_image_detection"
 
 class TextRequest(BaseModel):
@@ -35,6 +35,7 @@ def query_huggingface(api_url, payload, is_file=False):
     max_retries = 3
     for attempt in range(max_retries):
         if is_file:
+            # Required so Hugging Face knows this is an image, not text
             file_headers = {
                 "Authorization": f"Bearer {HF_TOKEN}",
                 "Content-Type": "application/octet-stream"
@@ -51,11 +52,9 @@ def query_huggingface(api_url, payload, is_file=False):
     return {"error": "API timed out"}
 
 def parse_hf_response(result):
-    """Bulletproof parser to find the exact AI probability, preventing 'all fake' bugs."""
-    if isinstance(result, dict) and "error" in result:
-        return 0.5
+    """Safely extracts the exact AI math to prevent the 'all human' or 'all fake' bug."""
+    if isinstance(result, dict) and "error" in result: return 0.5
         
-    # Handle both nested lists [[{...}]] and flat lists [{...}]
     if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
         predictions = result[0]
     elif isinstance(result, list):
@@ -66,7 +65,6 @@ def parse_hf_response(result):
     ai_score = 0.0
     human_score = 0.0
 
-    # Dynamically scan for labels rather than trusting the array order
     for pred in predictions:
         label = pred.get('label', '').lower()
         score = pred.get('score', 0.0)
@@ -76,28 +74,15 @@ def parse_hf_response(result):
         elif any(w in label for w in ["human", "real", "authentic", "original", "0"]):
             human_score += score
 
-    # Calculate the final mathematical probability safely
-    if ai_score == 0.0 and human_score > 0.0:
-        return 1.0 - human_score
-    elif human_score == 0.0 and ai_score > 0.0:
-        return ai_score
-    elif ai_score > 0 and human_score > 0:
-        return ai_score / (ai_score + human_score)
+    if ai_score == 0.0 and human_score > 0.0: return 1.0 - human_score
+    elif human_score == 0.0 and ai_score > 0.0: return ai_score
+    elif ai_score > 0 and human_score > 0: return ai_score / (ai_score + human_score)
         
-    return 0.5 # Unknown error fallback
-
-def get_threshold_result(ai_probability, content_type):
-    if ai_probability >= 0.80:
-        return {"status": "Highly Likely AI-Generated", "level": "danger", "confidence": round(ai_probability * 100, 2), "type": content_type}
-    elif ai_probability >= 0.55:
-        return {"status": "Mixed Content / Inconclusive", "level": "warning", "confidence": round(ai_probability * 100, 2), "type": content_type}
-    else:
-        human_prob = 1.0 - ai_probability
-        return {"status": "Likely Authentic / Human", "level": "success", "confidence": round(human_prob * 100, 2), "type": content_type}
+    return 0.5 
 
 @app.get("/")
 def read_root():
-    return {"status": "Bulletproof API is running!"}
+    return {"status": "Strict Binary API is running!"}
 
 @app.post("/analyze-text")
 def analyze_text(request: TextRequest):
@@ -108,7 +93,13 @@ def analyze_text(request: TextRequest):
     if isinstance(result, dict) and "error" in result: return result
         
     ai_prob = parse_hf_response(result)
-    return get_threshold_result(ai_prob, "text")
+    is_ai = ai_prob > 0.50
+    
+    return {
+        "is_ai": is_ai,
+        "confidence": round((ai_prob if is_ai else (1 - ai_prob)) * 100, 2),
+        "type": "text"
+    }
 
 @app.post("/analyze-image")
 async def analyze_img(file: UploadFile = File(...)):
@@ -120,7 +111,13 @@ async def analyze_img(file: UploadFile = File(...)):
     if isinstance(result, dict) and "error" in result: return result
         
     ai_prob = parse_hf_response(result)
-    return get_threshold_result(ai_prob, "image")
+    is_ai = ai_prob > 0.50
+    
+    return {
+        "is_ai": is_ai,
+        "confidence": round((ai_prob if is_ai else (1 - ai_prob)) * 100, 2),
+        "type": "image"
+    }
 
 @app.post("/analyze-video")
 async def analyze_vid(file: UploadFile = File(...)):
@@ -145,12 +142,18 @@ async def analyze_vid(file: UploadFile = File(...)):
                 if is_success:
                     result = query_huggingface(IMAGE_API_URL, buffer.tobytes(), is_file=True)
                     ai_prob = parse_hf_response(result)
-                    if ai_prob != 0.5: # Skip broken frames
+                    if ai_prob != 0.5:
                         ai_scores.append(ai_prob)
         cap.release()
         
         if not ai_scores: return {"error": "Could not analyze video frames."}
         avg_ai_score = sum(ai_scores) / len(ai_scores)
-        return get_threshold_result(avg_ai_score, "video")
+        is_ai = avg_ai_score > 0.50
+
+        return {
+            "is_ai": is_ai,
+            "confidence": round((avg_ai_score if is_ai else (1 - avg_ai_score)) * 100, 2),
+            "type": "video"
+        }
     finally:
         os.remove(temp_video_path)
