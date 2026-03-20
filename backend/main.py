@@ -131,7 +131,9 @@ async def analyze_vid(file: UploadFile = File(...)):
     try:
         cap = cv2.VideoCapture(temp_video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        frame_indices = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
+        
+        # We drop to 2 frames (33% and 66% marks) to save processing time
+        frame_indices = [int(total_frames * 0.33), int(total_frames * 0.66)]
         
         ai_scores = []
         for idx in frame_indices:
@@ -142,18 +144,24 @@ async def analyze_vid(file: UploadFile = File(...)):
                 if is_success:
                     result = query_huggingface(IMAGE_API_URL, buffer.tobytes(), is_file=True)
                     ai_prob = parse_hf_response(result)
-                    if ai_prob != 0.5:
+                    
+                    if ai_prob != 0.5: # 0.5 means HF threw an error, so we ignore it
                         ai_scores.append(ai_prob)
+                        
+                    # THE MAGIC FIX: Wait 2.5 seconds so Hugging Face doesn't block us
+                    time.sleep(2.5) 
         cap.release()
         
-        if not ai_scores: return {"error": "Could not analyze video frames."}
+        if not ai_scores: 
+            return {"error": "Hugging Face blocked the request or frames were unreadable."}
+            
         avg_ai_score = sum(ai_scores) / len(ai_scores)
         is_ai = avg_ai_score > 0.50
 
         return {
             "is_ai": is_ai,
             "confidence": round((avg_ai_score if is_ai else (1 - avg_ai_score)) * 100, 2),
-            "type": "video"
+            "type": "video visuals"
         }
     finally:
         os.remove(temp_video_path)
