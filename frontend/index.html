@@ -3,58 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multimodal AI Content Verifier</title>
+    <title>Neurolight | AI Content Verifier</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #f9f9f9; }
-        textarea { width: 100%; height: 200px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; }
-        input[type="file"] { margin-bottom: 20px; display: block; }
-        button { background-color: #007aff; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-bottom: 20px; }
-        button:hover { background-color: #005bb5; }
-        #result-box { margin-top: 30px; padding: 20px; border-radius: 8px; display: none; }
-        .ai-detected { background-color: #ffebee; border: 1px solid #ffcdd2; color: #c62828; }
-        .human-detected { background-color: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; }
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --border-color: #30363d;
+            
+            /* Strict Binary Colors */
+            --human-bg: rgba(46, 160, 67, 0.1);
+            --human-border: #2ea043;
+            --human-text: #3fb950;
+            
+            --ai-bg: rgba(248, 81, 73, 0.1);
+            --ai-border: #f85149;
+            --ai-text: #ff7b72;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            max-width: 650px;
+            width: 100%;
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+        }
+
+        h1 { margin-top: 0; font-size: 28px; text-align: center; color: #ffffff; letter-spacing: -0.5px; }
+        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 15px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; background: #010409; padding: 5px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; background: transparent; 
+            border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted);
+            transition: all 0.2s ease; font-size: 14px;
+        }
+        .tab-btn.active { background: var(--border-color); color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+        /* Inputs */
+        .input-group { display: none; animation: fadeIn 0.3s ease; }
+        .input-group.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        textarea {
+            width: 100%; height: 160px; padding: 16px; background: #010409; border: 1px solid var(--border-color);
+            border-radius: 12px; font-size: 15px; resize: vertical; box-sizing: border-box;
+            color: var(--text-main); font-family: inherit; margin-bottom: 20px; transition: border 0.2s;
+        }
+        textarea:focus { outline: none; border-color: var(--accent); }
+        textarea::placeholder { color: #484f58; }
+
+        .file-upload-wrapper {
+            border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px 20px;
+            text-align: center; margin-bottom: 20px; background: #010409; transition: border 0.2s;
+        }
+        .file-upload-wrapper:hover { border-color: var(--accent); }
+        input[type="file"] { margin-top: 15px; color: var(--text-muted); font-size: 14px; }
+
+        /* Action Button */
+        .analyze-btn {
+            width: 100%; background-color: var(--accent); color: #ffffff;
+            border: none; padding: 16px; border-radius: 12px; font-size: 16px;
+            font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .analyze-btn:hover { background-color: #3182ce; }
+        .analyze-btn:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
+
+        /* Results Box */
+        #result-box {
+            margin-top: 30px; padding: 25px; border-radius: 12px; display: none;
+            border: 1px solid; text-align: center; animation: fadeIn 0.4s ease;
+        }
+        #result-box.human-detected { background: var(--human-bg); border-color: var(--human-border); color: var(--human-text); }
+        #result-box.ai-detected { background: var(--ai-bg); border-color: var(--ai-border); color: var(--ai-text); }
+
+        #result-title { margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        #result-confidence { margin: 0; font-weight: 500; font-size: 16px; opacity: 0.9; }
+
+        .disclaimer { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 30px; line-height: 1.5; }
     </style>
 </head>
 <body>
-    <h1>Multimodal AI Content Verifier</h1>
-    <p>Analyze text, images, or video frames for AI generation.</p>
 
-    <h3>Analyze Text</h3>
-    <textarea id="text-input" placeholder="Enter at least 10 words here..."></textarea>
-    <button onclick="analyze('text')" id="btn-text">Analyze Text</button>
+    <div class="container">
+        <h1>Neurolight Scanner</h1>
+        <p class="subtitle">Advanced detection for AI-generated text, images, and video frames.</p>
 
-    <h3>Analyze Image or Video</h3>
-    <input type="file" id="file-input" accept="image/*,video/*">
-    <button onclick="analyze('file')" id="btn-file">Analyze File</button>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('text')">Text Analysis</button>
+            <button class="tab-btn" onclick="switchTab('media')">Media Analysis</button>
+        </div>
 
-    <div id="result-box">
-        <h2 id="result-title"></h2>
-        <p id="result-confidence"></p>
+        <div id="text-input-group" class="input-group active">
+            <textarea id="text-input" placeholder="Paste an article or essay here (minimum 10 words)..."></textarea>
+            <button class="analyze-btn" id="btn-text" onclick="analyze('text')">Scan Text</button>
+        </div>
+
+        <div id="media-input-group" class="input-group">
+            <div class="file-upload-wrapper">
+                <p style="margin:0 0 5px 0; color:var(--text-main); font-weight: 600;">Upload Media</p>
+                <p style="margin:0; color:var(--text-muted); font-size: 13px;">Supports .jpg, .png, and .mp4</p>
+                <input type="file" id="file-input" accept="image/*,video/*">
+            </div>
+            <button class="analyze-btn" id="btn-media" onclick="analyze('file')">Scan Media</button>
+        </div>
+
+        <div id="result-box">
+            <h2 id="result-title"></h2>
+            <p id="result-confidence"></p>
+        </div>
+
+        <p class="disclaimer">
+            *Detection models rely on probabilistic pattern recognition. False positives can occur with highly structured human data.
+        </p>
     </div>
 
     <script>
-        // Make sure this points to your live Render URL!
+        // REPLACE THIS WITH YOUR LIVE RENDER URL
         const API_BASE_URL = 'https://ai-detector-api.onrender.com';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.input-group').forEach(g => g.classList.remove('active'));
+            
+            if(tab === 'text') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('text-input-group').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('media-input-group').classList.add('active');
+            }
+            document.getElementById('result-box').style.display = 'none';
+        }
 
         async function analyze(type) {
             const resultBox = document.getElementById('result-box');
             const resultTitle = document.getElementById('result-title');
-            const resultConfidence = document.getElementById('result-confidence');
+            const resultConf = document.getElementById('result-confidence');
+            const activeBtn = type === 'text' ? document.getElementById('btn-text') : document.getElementById('btn-media');
+            
             let endpoint = '';
-            let payload;
             let options = { method: 'POST' };
 
             resultBox.style.display = "none";
-
+            
             if (type === 'text') {
                 const text = document.getElementById('text-input').value;
-                if (!text || text.split(' ').length < 10) return alert("Enter 10+ words.");
+                if (!text || text.split(' ').length < 10) return alert("Please enter at least 10 words.");
                 endpoint = `${API_BASE_URL}/analyze-text`;
                 options.headers = { 'Content-Type': 'application/json' };
                 options.body = JSON.stringify({ text: text });
             } else {
                 const fileInput = document.getElementById('file-input');
-                if (!fileInput.files.length) return alert("Select a file.");
+                if (!fileInput.files.length) return alert("Please select a file first.");
                 const file = fileInput.files[0];
                 
                 endpoint = file.type.startsWith('image') 
@@ -63,24 +182,36 @@
                 
                 const formData = new FormData();
                 formData.append("file", file);
-                options.body = formData; 
+                options.body = formData;
             }
+
+            // Loading state
+            const originalText = activeBtn.innerText;
+            activeBtn.innerText = "Scanning Data Pipeline...";
+            activeBtn.disabled = true;
 
             try {
                 const response = await fetch(endpoint, options);
                 const data = await response.json();
 
                 if (data.error) {
-                    alert(data.error);
+                    alert("Analysis Error: " + data.error);
                 } else {
                     resultBox.style.display = "block";
                     resultBox.className = data.is_ai ? "ai-detected" : "human-detected";
-                    resultTitle.innerText = data.is_ai ? `⚠️ AI Generated ${data.type} Detected` : `✅ Authentic/Human ${data.type}`;
-                    resultConfidence.innerText = `Confidence: ${data.confidence}%`;
+                    
+                    let icon = data.is_ai ? `⚠️` : `✅`;
+                    let source = data.is_ai ? "AI Generated" : "Authentic Human";
+                    
+                    resultTitle.innerHTML = `${icon} <span>${source} ${data.type}</span>`;
+                    resultConf.innerText = `Network Confidence: ${data.confidence}%`;
                 }
             } catch (error) {
-                console.error("Error:", error);
-                alert("Ensure your backend is running.");
+                console.error("Fetch Error:", error);
+                alert("Failed to connect to the analysis engine. Please try again.");
+            } finally {
+                activeBtn.innerText = originalText;
+                activeBtn.disabled = false;
             }
         }
     </script>
