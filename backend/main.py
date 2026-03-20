@@ -25,9 +25,8 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 # Hugging Face API Endpoints
-TEXT_API_URL = "https://api-inference.huggingface.co/models/Hello-SimpleAI/chatgpt-detector-roberta"
-IMAGE_API_URL = "https://api-inference.huggingface.co/models/umm-maybe/AI-image-detector"
-
+TEXT_API_URL = "https://router.huggingface.co/hf-inference/models/Hello-SimpleAI/chatgpt-detector-roberta"
+IMAGE_API_URL = "https://router.huggingface.co/hf-inference/models/umm-maybe/AI-image-detector"
 class TextRequest(BaseModel):
     text: str
 
