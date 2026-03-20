@@ -46,7 +46,7 @@
             if (type === 'text') {
                 const text = document.getElementById('text-input').value;
                 if (!text || text.split(' ').length < 10) return alert("Enter 10+ words.");
-                endpoint = 'http://127.0.0.1:8000/analyze-text';
+                endpoint = 'https://ai-detector-api-lte6.onrender.com/analyze-text';
                 options.headers = { 'Content-Type': 'application/json' };
                 options.body = JSON.stringify({ text: text });
             } else {
@@ -55,8 +55,8 @@
                 const file = fileInput.files[0];
                 
                 endpoint = file.type.startsWith('image') 
-                    ? 'http://127.0.0.1:8000/analyze-image' 
-                    : 'http://127.0.0.1:8000/analyze-video';
+                    ? 'https://ai-detector-api-lte6.onrender.com/analyze-image' 
+                    : 'https://ai-detector-api-lte6.onrender.com/analyze-video';
                 
                 const formData = new FormData();
                 formData.append("file", file);
