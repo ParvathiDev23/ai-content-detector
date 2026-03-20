@@ -3,32 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neurolight | AI Content Verifier</title>
+    <title>Scanner 🌌 Neurolight Galactic</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --accent: #58a6ff;
-            --border-color: #30363d;
+            /* The vibrant inspiration palette */
+            --bg-yellow: #FFD21E; /* Bright Yellow */
+            --accent-red: #EA1F12;  /* Comic Red */
+            --text-pure-black: #000000;
             
-            /* Strict Binary Colors */
-            --human-bg: rgba(46, 160, 67, 0.1);
-            --human-border: #2ea043;
-            --human-text: #3fb950;
+            /* Font Mapping */
+            --font-display: 'Anton', sans-serif; /* Blocky Logo style */
+            --font-body: 'Space Grotesk', sans-serif; /* Cleaner body/button text */
             
-            --ai-bg: rgba(248, 81, 73, 0.1);
-            --ai-border: #f85149;
-            --ai-text: #ff7b72;
+            /* Results colors adjusted for high visibility on red */
+            --human-glow: #3fb950;
+            --ai-glow: #ffffff;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            font-family: var(--font-body);
+            background-color: var(--bg-yellow);
+            color: var(--text-pure-black);
             margin: 0;
-            padding: 40px 20px;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -36,109 +38,144 @@
         }
 
         .container {
-            background-color: var(--card-bg);
-            max-width: 650px;
+            max-width: 900px;
             width: 100%;
-            padding: 40px;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Whimsical Header mimicking PLANET OÑO */
+        h1.logo-header {
+            font-family: var(--font-display);
+            font-size: 64px;
+            text-transform: uppercase;
+            margin: 0 0 10px 0;
+            letter-spacing: -2px;
+            position: relative;
+            /* Simple black shadow for 3D effect seen on the logo */
+            text-shadow: 2px 2px 0px var(--accent-red), 4px 4px 0px rgba(0,0,0,0.1);
+        }
+
+        p.scanner-details {
+            font-weight: 700;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 40px;
+            line-height: 1.4;
+            color: #111;
+        }
+
+        /* Main asymmetric shape area from PLANET OÑO */
+        .cosmic-area {
+            background-color: var(--accent-red);
+            padding: 50px 40px;
+            width: 100%;
+            border-radius: 60px; /* Big smooth round corners */
+            position: relative;
             box-sizing: border-box;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.2);
+            /* Creating the asymmetrical perspective look using transform and clip-path */
+            transform: skew(-2deg);
         }
 
-        h1 { margin-top: 0; font-size: 28px; text-align: center; color: #ffffff; letter-spacing: -0.5px; }
-        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 15px; }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 10px; margin-bottom: 25px; background: #010409; padding: 5px; border-radius: 12px; border: 1px solid var(--border-color); }
+        /* Tab buttons like the Slider buttons in the inspiration */
+        .tabs { display: flex; gap: 15px; margin-bottom: 25px; justify-content: center; transform: skew(2deg); }
         .tab-btn {
-            flex: 1; padding: 12px; border: none; background: transparent; 
-            border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted);
-            transition: all 0.2s ease; font-size: 14px;
+            background-color: white; color: black; border: 3px solid black; padding: 12px 25px;
+            border-radius: 30px; cursor: pointer; font-weight: 700; text-transform: uppercase;
+            transition: transform 0.1s, box-shadow 0.1s;
         }
-        .tab-btn.active { background: var(--border-color); color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .tab-btn:hover { transform: translateY(-3px) scale(1.05); }
+        .tab-btn.active { box-shadow: 5px 5px 0 black; transform: translateY(-3px); }
 
         /* Inputs */
-        .input-group { display: none; animation: fadeIn 0.3s ease; }
+        .input-group { display: none; transform: skew(2deg); }
         .input-group.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         textarea {
-            width: 100%; height: 160px; padding: 16px; background: #010409; border: 1px solid var(--border-color);
-            border-radius: 12px; font-size: 15px; resize: vertical; box-sizing: border-box;
-            color: var(--text-main); font-family: inherit; margin-bottom: 20px; transition: border 0.2s;
+            width: 100%; height: 180px; padding: 20px; background: white; border: 3px solid black;
+            border-radius: 20px; font-size: 16px; resize: vertical; box-sizing: border-box;
+            color: black; font-family: inherit; margin-bottom: 25px; font-weight: 500;
         }
-        textarea:focus { outline: none; border-color: var(--accent); }
-        textarea::placeholder { color: #484f58; }
+        textarea:focus { outline: none; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
 
         .file-upload-wrapper {
-            border: 2px dashed var(--border-color); border-radius: 12px; padding: 40px 20px;
-            text-align: center; margin-bottom: 20px; background: #010409; transition: border 0.2s;
+            background: rgba(255,255,255,0.15); border: 4px dashed white; border-radius: 20px; padding: 40px;
+            text-align: center; margin-bottom: 25px; color: white;
         }
-        .file-upload-wrapper:hover { border-color: var(--accent); }
-        input[type="file"] { margin-top: 15px; color: var(--text-muted); font-size: 14px; }
 
-        /* Action Button */
-        .analyze-btn {
-            width: 100%; background-color: var(--accent); color: #ffffff;
-            border: none; padding: 16px; border-radius: 12px; font-size: 16px;
-            font-weight: 600; cursor: pointer; transition: background 0.2s;
+        /* Action Buttons mimicking the whimsy */
+        .scan-btn {
+            width: 100%; background-color: var(--text-pure-black); color: var(--bg-yellow);
+            border: 4px solid var(--text-pure-black); padding: 18px; border-radius: 20px; font-size: 20px;
+            font-weight: 700; cursor: pointer; text-transform: uppercase;
+            transition: all 0.2s; font-family: var(--font-display);
         }
-        .analyze-btn:hover { background-color: #3182ce; }
-        .analyze-btn:disabled { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
+        .scan-btn:hover { background-color: white; color: black; border-color: black; transform: translateY(-5px); box-shadow: 8px 8px 0 black; }
+        .scan-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        /* Results Box */
+        /* Whimsical Result Box inside the red area */
         #result-box {
-            margin-top: 30px; padding: 25px; border-radius: 12px; display: none;
-            border: 1px solid; text-align: center; animation: fadeIn 0.4s ease;
+            margin-top: 35px; padding: 30px; border-radius: 20px; display: none;
+            border: 4px solid black; text-align: center; background: white; color: black;
+            transform: skew(2deg);
         }
-        #result-box.human-detected { background: var(--human-bg); border-color: var(--human-border); color: var(--human-text); }
-        #result-box.ai-detected { background: var(--ai-bg); border-color: var(--ai-border); color: var(--ai-text); }
+        #result-box.ai-detected { border-color: black; background: #FFF; animation: warningPulse 1s infinite; }
+        #result-box.human-detected { border-color: black; background: white; }
 
-        #result-title { margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        #result-confidence { margin: 0; font-weight: 500; font-size: 16px; opacity: 0.9; }
+        @keyframes warningPulse { 0% { box-shadow: 0 0 0 white; } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); } 100% { box-shadow: 0 0 0 white; } }
 
-        .disclaimer { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 30px; line-height: 1.5; }
+        #result-title { margin: 0 0 15px 0; font-size: 26px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: -1px; }
+        #result-confidence { margin: 0; font-weight: 700; font-size: 18px; }
+
+        /* Simple disclaimer text near the bottom like major paws detail */
+        .disclaimer { font-size: 13px; color: rgba(0,0,0,0.6); text-align: center; margin-top: 40px; line-height: 1.5; font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Neurolight Scanner</h1>
-        <p class="subtitle">Advanced detection for AI-generated text, images, and video frames.</p>
+        <p class="scanner-details" style="text-transform: uppercase; font-size: 22px;">AURA System V2</p>
+        <h1 class="logo-header">Neurolight Galactic</h1>
+        <p class="scanner-details">Stacked data pipeline with cosmic analysis for synthetic text, image artifacts, and stardust frames.</p>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('text')">Text Analysis</button>
-            <button class="tab-btn" onclick="switchTab('media')">Media Analysis</button>
-        </div>
-
-        <div id="text-input-group" class="input-group active">
-            <textarea id="text-input" placeholder="Paste an article or essay here (minimum 10 words)..."></textarea>
-            <button class="analyze-btn" id="btn-text" onclick="analyze('text')">Scan Text</button>
-        </div>
-
-        <div id="media-input-group" class="input-group">
-            <div class="file-upload-wrapper">
-                <p style="margin:0 0 5px 0; color:var(--text-main); font-weight: 600;">Upload Media</p>
-                <p style="margin:0; color:var(--text-muted); font-size: 13px;">Supports .jpg, .png, and .mp4</p>
-                <input type="file" id="file-input" accept="image/*,video/*">
+        <div class="cosmic-area">
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('text')">Text Assay</button>
+                <button class="tab-btn" onclick="switchTab('media')">Image / Video Assay</button>
             </div>
-            <button class="analyze-btn" id="btn-media" onclick="analyze('file')">Scan Media</button>
-        </div>
 
-        <div id="result-box">
-            <h2 id="result-title"></h2>
-            <p id="result-confidence"></p>
+            <div id="text-input-group" class="input-group active">
+                <textarea id="text-input" placeholder="Paste data protocols here (minimum 10 words)..."></textarea>
+                <button class="scan-btn" id="btn-text" onclick="analyze('text')">Initiate Scan</button>
+            </div>
+
+            <div id="media-input-group" class="input-group">
+                <div class="file-upload-wrapper">
+                    <p style="margin:0 0 5px 0; color:white; font-size: 20px; font-weight: 700; text-transform: uppercase;">Awaiting Payload</p>
+                    <p style="margin:0; color:rgba(255,255,255,0.7); font-size: 14px;">Select synthetic jpg, png, or mp4 frame stack</p>
+                    <input type="file" id="file-input" accept="image/*,video/*" style="margin-top: 20px;">
+                </div>
+                <button class="scan-btn" id="btn-media" onclick="analyze('file')">Scan Payload</button>
+            </div>
+
+            <div id="result-box">
+                <h2 id="result-title"></h2>
+                <p id="result-confidence"></p>
+            </div>
+
         </div>
 
         <p class="disclaimer">
-            *Detection models rely on probabilistic pattern recognition. False positives can occur with highly structured human data.
+            *Comes with Major Paws disclaimer: Detection models rely on probabilistic patterns in the Milky Way. False positives can occur.
         </p>
     </div>
 
     <script>
-        // REPLACE THIS WITH YOUR LIVE RENDER URL
-        const API_BASE_URL = ' https://ai-detector-api-lte6.onrender.com';
+        // --- ⚠️ MAKE SURE THIS URL IS CORRECT ⚠️ ---
+        const API_BASE_URL = 'https://ai-detector-api-lte6.onrender.com';
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -167,13 +204,13 @@
             
             if (type === 'text') {
                 const text = document.getElementById('text-input').value;
-                if (!text || text.split(' ').length < 10) return alert("Please enter at least 10 words.");
+                if (!text || text.split(' ').length < 10) return alert("System protocol requires 10+ words.");
                 endpoint = `${API_BASE_URL}/analyze-text`;
                 options.headers = { 'Content-Type': 'application/json' };
                 options.body = JSON.stringify({ text: text });
             } else {
                 const fileInput = document.getElementById('file-input');
-                if (!fileInput.files.length) return alert("Please select a file first.");
+                if (!fileInput.files.length) return alert("System requires payload first.");
                 const file = fileInput.files[0];
                 
                 endpoint = file.type.startsWith('image') 
@@ -185,9 +222,9 @@
                 options.body = formData;
             }
 
-            // Loading state
+            // Whimsical Loading state
             const originalText = activeBtn.innerText;
-            activeBtn.innerText = "Scanning Data Pipeline...";
+            activeBtn.innerText = "Scanning Data Stream...";
             activeBtn.disabled = true;
 
             try {
@@ -195,20 +232,20 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    alert("Analysis Error: " + data.error);
+                    alert("Analysis Protocol Error: " + data.error);
                 } else {
                     resultBox.style.display = "block";
                     resultBox.className = data.is_ai ? "ai-detected" : "human-detected";
                     
-                    let icon = data.is_ai ? `⚠️` : `✅`;
-                    let source = data.is_ai ? "AI Generated" : "Authentic Human";
+                    let symbol = data.is_ai ? `🚫` : `✅`;
+                    let source = data.is_ai ? "AI Machine Core" : "Authentic Human Paws";
                     
-                    resultTitle.innerHTML = `${icon} <span>${source} ${data.type}</span>`;
-                    resultConf.innerText = `Network Confidence: ${data.confidence}%`;
+                    resultTitle.innerText = `${symbol} DECAY PROTOCOL: ${source} [${data.type}]`;
+                    resultConf.innerText = `Scan Confidence: ${data.confidence}%`;
                 }
             } catch (error) {
                 console.error("Fetch Error:", error);
-                alert("Failed to connect to the analysis engine. Please try again.");
+                alert("Failed to connect to galactic analysis core.");
             } finally {
                 activeBtn.innerText = originalText;
                 activeBtn.disabled = false;
